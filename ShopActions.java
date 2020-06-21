@@ -14,15 +14,11 @@ import java.util.Map;
 public class ShopActions {
     public static Map<String, Shop> shops = new HashMap<>();
 
-    public static void createShop(Block block, Player player) {
-        ChatHandler.addPlayer(player);
-        player.sendMessage("Enter a shop name.");
-        final String[] shopName = new String[1];
-        Bukkit.getScheduler().scheduleSyncDelayedTask(ShopsDR.getPlugin(), () -> {
-            shopName[0] = ChatHandler.getMessage(player);
+    public static void createShop(Block block, Player player, String shopName) {
+        Bukkit.getScheduler().runTask(ShopsDR.getPlugin(), () -> {
             Block block1 = block.getWorld().getBlockAt(block.getLocation().add(0, 1, 0));
             Block block2 = block.getWorld().getBlockAt(block.getLocation().add(1, 1, 0));
-            if (block1.getType() == Material.AIR && block2.getType() == Material.AIR && shopName[0] != null) {
+            if (block1.getType() == Material.AIR && block2.getType() == Material.AIR) {
                 block1.setType(Material.CHEST);
                 block2.setType(Material.CHEST);
                 Chest chestBlockState1 = (Chest) block1.getBlockData();
@@ -35,10 +31,14 @@ public class ShopActions {
                 player.sendMessage("Placing shop cancelled.");
                 return;
             }
-            Shop shop = new Shop(player, block1, shopName[0]);
+            Shop shop = new Shop(player, block1, shopName);
             shops.put(player.getName(), shop);
-        }, 100L);
+            player.sendMessage("Shop placed!");
+        });
+    }
 
+    public static boolean hasShop(Player player) {
+        return shops.containsKey(player.getName());
     }
 
     public static Shop getShop(Block block) {
@@ -70,13 +70,16 @@ public class ShopActions {
         } else if (itemType.equals(Material.GRAY_DYE) || itemType.equals(Material.LIME_DYE)) {
             shop.changeShopState();
         } else if (itemType.equals(Material.NAME_TAG) && !shop.isOpen) {
-            ChatHandler.addPlayer(player);
+            ChatHandler.addShopRenamer(player);
+            player.sendMessage("Enter a new shop name!");
             PlayerActions.closeInventory(player);
-            player.sendMessage("Enter a new shop name:");
-            Bukkit.getScheduler().scheduleSyncDelayedTask(ShopsDR.getPlugin(), () -> {
-                player.sendMessage(shop.setName(ChatHandler.getMessage(player)));
-                player.openInventory(shop.inventory);
-            }, 100L);
+            //ChatHandler.addShopNamer(player);
+//            PlayerActions.closeInventory(player);
+//            player.sendMessage("Enter a new shop name:");
+//            Bukkit.getScheduler().scheduleSyncDelayedTask(ShopsDR.getPlugin(), () -> {
+//                player.sendMessage(shop.setName(ChatHandler.getMessage(player)));
+//                player.openInventory(shop.inventory);
+//            }, 100L); TODO: Remake
         }
     }
 }

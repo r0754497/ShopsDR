@@ -3,6 +3,7 @@ package simon.shopsdr;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -17,19 +18,26 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
+import java.util.Objects;
+
 public class ShopsDRListener implements Listener {
     Plugin plugin = ShopsDR.getPlugin();
 
     @EventHandler
     public void onRightClick(PlayerInteractEvent event) {
         Player player = event.getPlayer();
-        if (event.getHand().equals(EquipmentSlot.OFF_HAND)) {
+        if (Objects.equals(event.getHand(), EquipmentSlot.OFF_HAND)) {
             return;
         }
         if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK)) {
             if (player.getInventory().getItemInMainHand().getType() == Material.BOOK
                     && !event.getClickedBlock().getType().equals(Material.CHEST)) {
-                ShopActions.createShop(event.getClickedBlock(), player);
+                if (ShopActions.hasShop(player)) {
+                    player.sendMessage("You already have a shop. Close that one first!");
+                } else {
+                    player.sendMessage("Enter a shop name: ");
+                    ChatHandler.addShopNamer(player, event.getClickedBlock());
+                }
             }
             if (event.getClickedBlock().getType().equals(Material.CHEST)) {
                 Shop shop = ShopActions.getShop(event.getClickedBlock());
@@ -52,7 +60,7 @@ public class ShopsDRListener implements Listener {
 
     @EventHandler
     public void onLeftClick(PlayerInteractEvent event) {
-        if (event.getHand().equals(EquipmentSlot.OFF_HAND)) {
+        if (Objects.equals(event.getHand(), EquipmentSlot.OFF_HAND)) {
             return;
         }
         if (event.getAction().equals(Action.LEFT_CLICK_BLOCK)) {
@@ -84,20 +92,21 @@ public class ShopsDRListener implements Listener {
                     } else if (event.getSlot() < shop.inventory.getSize() - 9 && !shop.isOpen) {
                         shop.removeItem(event.getSlot(), player, false);
                     }
-                } else if (event.getCursor() != null && !shop.isOpen) {
+                } else if (event.getCursor() != null && event.getCursor().getType() != Material.AIR && !shop.isOpen) {
                     ItemStack sellItem = event.getCursor();
-                    event.setCursor(null);
-                    PlayerActions.closeInventory(player);
-                    ChatHandler.addPlayer(player);
-                    player.sendMessage("Enter item price:");
-                    Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
-                        shop.addShopItem(sellItem, event.getSlot(), ChatHandler.getMessage(player), player);
-                        player.openInventory(shop.inventory);
-                    }, 100L);
-                } //TODO: Move this crap to a proper method.
+                    if (sellItem != null) {
+                        player.getInventory().addItem(sellItem);
+                        ChatHandler.addPlayerPricing(player, sellItem);
+                        event.setCursor(null);
+                        PlayerActions.closeInventory(player);
+                        player.sendMessage("Enter item price:");
+                    }
+                }
             } else {
-                if (event.getSlot() < shop.inventory.getSize() - 9) {
-                    shop.removeItem(event.getSlot(), player, true);
+                if (event.getCurrentItem() != null) {
+                    if (event.getSlot() < shop.inventory.getSize() - 9) {
+                        shop.removeItem(event.getSlot(), player, true);
+                    }
                 }
             }
         }
@@ -106,12 +115,34 @@ public class ShopsDRListener implements Listener {
     @EventHandler
     public void onChatMessage(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
-        if (ChatHandler.getPlayerList().contains(player)) {
-            String message = event.getMessage();
-            ChatHandler.removePlayer(player);
-            ChatHandler.addMessage(player, message);
+        if (ChatHandler.getShopNameList().containsKey(player)) {
+            Block block = ChatHandler.getShopNameList().get(player);
+            ChatHandler.removeShopNamer(player);
+            ShopActions.createShop(block, player, event.getMessage());
             event.setCancelled(true);
         }
+        if (ChatHandler.getRenameShopList().contains(player)) {
+            ChatHandler.removeShopRenamer(player);
+            if (ShopActions.hasShop(player)) {
+                Shop shop = ShopActions.shops.get(player.getName());
+                player.sendMessage(shop.setName(event.getMessage()));
+            } else {
+                player.sendMessage("You don't have a shop...");
+            }
+            event.setCancelled(true);
+        }
+        if (ChatHandler.getPriceItemList().containsKey(player)) {
+            if (ShopActions.hasShop(player)) {
+                ItemStack item = ChatHandler.getPriceItemList().get(player);
+                ChatHandler.removePlayerPricing(player);
+                Shop shop = ShopActions.shops.get(player.getName());
+                shop.addShopItem(item, event.getMessage(), player);
+            } else {
+                player.sendMessage("You don't have a shop...");
+            }
+            event.setCancelled(true);
+        }
+
     }
 
     @EventHandler

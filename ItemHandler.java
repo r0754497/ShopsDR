@@ -43,6 +43,6 @@ public class ItemHandler {
     public static int getPrice(ItemStack item) {
         ItemMeta itemMeta = item.getItemMeta();
         List<String> itemPrice = itemMeta.getLore();
-        return Integer.parseInt(itemPrice.get(0));
+        return Integer.parseInt(itemPrice.get(0).substring(2));
     }
 }

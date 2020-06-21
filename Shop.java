@@ -68,13 +68,15 @@ public class Shop {
 
     public String setName(String newShopName) {
         if (newShopName != null) {
-            shopName = newShopName;
-            ItemStack[] items = inventory.getContents();
-            inventory = createShopInv(shopOwnerName);
-            inventory.setContents(items);
-            hologram.clearLines();
-            hologram.insertTextLine(0, ChatColor.RED + shopName);
-            hologram.insertTextLine(1, ChatColor.RED + getViewerAmount());
+            Bukkit.getScheduler().scheduleSyncDelayedTask(ShopsDR.getPlugin(), () -> {
+                shopName = newShopName;
+                ItemStack[] items = inventory.getContents();
+                inventory = createShopInv(shopOwnerName);
+                inventory.setContents(items);
+                hologram.clearLines();
+                hologram.insertTextLine(0, ChatColor.RED + shopName);
+                hologram.insertTextLine(1, ChatColor.RED + getViewerAmount());
+            });
             return "Shop name changed";
         }
         return "No shop name found";
@@ -164,28 +166,35 @@ public class Shop {
         return nameToCheck.equals(shopOwnerName);
     }
 
-    public void addShopItem(ItemStack item, int slot, String price, Player player) {
-        try {
-            int priceInt = Integer.parseInt(price);
-            ItemStack itemPriced = ItemHandler.addprice(item, price);
-            inventory.setItem(slot, itemPriced);
-        } catch (NumberFormatException nfe) {
-            player.getInventory().addItem(item);
-            player.sendMessage("Add a valid price");
-        }
-
+    public void addShopItem(ItemStack item, String price, Player player) {
+        Bukkit.getScheduler().scheduleSyncDelayedTask(ShopsDR.getPlugin(), () -> {
+            try {
+                int priceInt = Integer.parseInt(price);
+                ItemStack itemPriced = ItemHandler.addprice(item, price);
+                inventory.addItem(itemPriced);
+            } catch (NumberFormatException nfe) {
+                player.getInventory().addItem(item);
+                player.sendMessage("Add a valid price");
+            }
+            player.openInventory(inventory);
+        });
     }
 
     public void removeItem(int slot, Player player, Boolean isBuying) {
-        ItemStack item = ItemHandler.removePrice(inventory.getItem(slot));
+        ItemStack item = inventory.getItem(slot);
         if (isBuying) {
             PlayerObj buyer = PlayerActions.getPlayer(player.getName());
             PlayerObj seller = PlayerActions.getPlayer(shopOwnerName);
             int price = ItemHandler.getPrice(item);
-            buyer.setCurrency(buyer.getCurrency() - price);
-            seller.setCurrency(seller.getCurrency() + price);
+            if (buyer.getCurrency() > price) {
+                buyer.setCurrency(buyer.getCurrency() - price);
+                seller.setCurrency(seller.getCurrency() + price);
+            } else {
+                player.sendMessage("You don't have enough cash.");
+                return;
+            }
         }
         inventory.clear(slot);
-        player.getInventory().addItem(item);
+        player.getInventory().addItem(ItemHandler.removePrice(item));
     }
 }

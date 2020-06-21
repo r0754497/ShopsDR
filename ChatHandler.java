@@ -1,6 +1,8 @@
 package simon.shopsdr;
 
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -8,29 +10,43 @@ import java.util.Map;
 
 public class ChatHandler {
 
+    public static Map<Player, Block> shopNameList = new HashMap<>();
+    public static ArrayList<Player> renameShopList = new ArrayList<>();
+    public static Map<Player, ItemStack> priceItemList = new HashMap<>();
 
-    public static ArrayList<Player> playerList = new ArrayList<>();
-    public static Map<Player, String> messages = new HashMap<>();
-
-    public static void addPlayer(Player player) {
-        playerList.add(player);
+    public static void addShopNamer(Player player, Block block) {
+        shopNameList.put(player, block);
     }
 
-    public static void removePlayer(Player player) {
-        playerList.remove(player);
+    public static void removeShopNamer(Player player) {
+        shopNameList.remove(player);
     }
 
-    public static ArrayList<Player> getPlayerList() {
-        return playerList;
+    public static Map<Player, Block> getShopNameList() {
+        return shopNameList;
     }
 
-    public static void addMessage(Player player, String message) {
-        messages.put(player, message);
+    public static ArrayList<Player> getRenameShopList() {
+        return renameShopList;
     }
 
-    public static String getMessage(Player player) {
-        String message = messages.get(player);
-        messages.remove(player);
-        return message;
+    public static void addShopRenamer(Player player) {
+        renameShopList.add(player);
+    }
+
+    public static void removeShopRenamer(Player player) {
+        renameShopList.remove(player);
+    }
+
+    public static Map<Player, ItemStack> getPriceItemList() {
+        return priceItemList;
+    }
+
+    public static void addPlayerPricing(Player player, ItemStack item) {
+        priceItemList.put(player, item);
+    }
+
+    public static void removePlayerPricing(Player player) {
+        priceItemList.remove(player);
     }
 }
