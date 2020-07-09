@@ -6,12 +6,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class ShopsDR extends JavaPlugin {
     public static ShopsDR plugin;
-    public Map<String, Shop> shops = new HashMap<>();
 
     public static ShopsDR getPlugin() {
         return plugin;
@@ -22,7 +18,7 @@ public class ShopsDR extends JavaPlugin {
         plugin = this;
         boolean useHolographicDisplays = Bukkit.getPluginManager().isPluginEnabled("HolographicDisplays");
         if (useHolographicDisplays) {
-            getLogger().info("Test");
+            getLogger().info("Holographic Displays enabled");
         }
         getLogger().info("Plugin loaded");
         getServer().getPluginManager().registerEvents(new ShopsDRListener(), this);
@@ -30,6 +26,9 @@ public class ShopsDR extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        for (Shop shop : ShopActions.shops.values()) {
+            shop.removeShop();
+        }
     }
 
     @Override

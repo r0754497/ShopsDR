@@ -26,7 +26,7 @@ public class ItemHandler {
 
     public static ItemStack addprice(ItemStack item, String price) {
         ItemMeta itemMeta = item.getItemMeta();
-        itemMeta.setLore(Collections.singletonList(ChatColor.GRAY + price));
+        itemMeta.setLore(Collections.singletonList("Price: " + ChatColor.GRAY + price));
         item.setItemMeta(itemMeta);
         return item;
     }
@@ -43,6 +43,6 @@ public class ItemHandler {
     public static int getPrice(ItemStack item) {
         ItemMeta itemMeta = item.getItemMeta();
         List<String> itemPrice = itemMeta.getLore();
-        return Integer.parseInt(itemPrice.get(0).substring(2));
+        return Integer.parseInt(itemPrice.get(0).substring(9));
     }
 }

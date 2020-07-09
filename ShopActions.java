@@ -73,13 +73,6 @@ public class ShopActions {
             ChatHandler.addShopRenamer(player);
             player.sendMessage("Enter a new shop name!");
             PlayerActions.closeInventory(player);
-            //ChatHandler.addShopNamer(player);
-//            PlayerActions.closeInventory(player);
-//            player.sendMessage("Enter a new shop name:");
-//            Bukkit.getScheduler().scheduleSyncDelayedTask(ShopsDR.getPlugin(), () -> {
-//                player.sendMessage(shop.setName(ChatHandler.getMessage(player)));
-//                player.openInventory(shop.inventory);
-//            }, 100L); TODO: Remake
         }
     }
 }

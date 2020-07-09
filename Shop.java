@@ -7,6 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -14,6 +15,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -26,7 +28,6 @@ public class Shop {
     public Inventory inventory;
     public boolean isOpen;
     public Hologram hologram;
-    private int invSize;
     public ArrayList<Player> viewers = new ArrayList<>();
 
 
@@ -35,7 +36,6 @@ public class Shop {
         this.shopName = shopName;
         block1 = location;
         block2 = location.getWorld().getBlockAt(location.getLocation().add(1, 0, 0));
-        invSize = getSize(shopOwnerName);
         inventory = createShopInv(shopOwnerName);
         isOpen = false;
         hologram = HologramsAPI.createHologram(ShopsDR.getPlugin(), block1.getLocation().add(1, 1.5, .5));
@@ -67,7 +67,7 @@ public class Shop {
     }
 
     public String setName(String newShopName) {
-        if (newShopName != null) {
+        if (ChatHandler.checkShopName(newShopName)) {
             Bukkit.getScheduler().scheduleSyncDelayedTask(ShopsDR.getPlugin(), () -> {
                 shopName = newShopName;
                 ItemStack[] items = inventory.getContents();
@@ -100,14 +100,16 @@ public class Shop {
         block2.setType(Material.AIR);
         ShopActions.shops.remove(shopOwnerName);
         hologram.delete();
+        PlayerActions.closeInvForAll(this, true);
     }
 
     private void fillBottom(Inventory inv) {
-        inv.setItem(invSize - 1, getOpenButton());
-        inv.setItem(invSize - 2, getDeleteButton());
-        inv.setItem(invSize - 8, getRenameButton());
-        inv.setItem(invSize - 9, getPlayerHead());
-        for (int i = invSize - 3; i > invSize - 8; i--) {
+        int size = getSize(shopOwnerName);
+        inv.setItem(size - 1, getOpenButton());
+        inv.setItem(size - 2, getDeleteButton());
+        inv.setItem(size - 8, getRenameButton());
+        inv.setItem(size - 9, getPlayerHead());
+        for (int i = size - 3; i > size - 8; i--) {
             inv.setItem(i, getPane());
         }
     }
@@ -149,12 +151,13 @@ public class Shop {
     public void changeShopState() {
         isOpen = !isOpen;
         if (isOpen) {
-            inventory.setItem(invSize - 1, getCloseButton());
+            inventory.setItem(inventory.getSize() - 1, getCloseButton());
             hologram.clearLines();
             hologram.insertTextLine(0, ChatColor.GREEN + shopName);
             hologram.insertTextLine(1, ChatColor.GREEN + getViewerAmount());
         } else {
-            inventory.setItem(invSize - 1, getOpenButton());
+            PlayerActions.closeInvForAll(this, false);
+            inventory.setItem(inventory.getSize() - 1, getOpenButton());
             hologram.clearLines();
             hologram.insertTextLine(0, ChatColor.RED + shopName);
             hologram.insertTextLine(1, ChatColor.RED + getViewerAmount());
@@ -170,8 +173,15 @@ public class Shop {
         Bukkit.getScheduler().scheduleSyncDelayedTask(ShopsDR.getPlugin(), () -> {
             try {
                 int priceInt = Integer.parseInt(price);
-                ItemStack itemPriced = ItemHandler.addprice(item, price);
-                inventory.addItem(itemPriced);
+                if (priceInt > 0) {
+                    ItemStack itemPriced = ItemHandler.addprice(item, price);
+                    inventory.addItem(itemPriced);
+                }
+                else {
+                    player.getInventory().addItem(item);
+                    player.sendMessage("Add a valid price");
+                }
+
             } catch (NumberFormatException nfe) {
                 player.getInventory().addItem(item);
                 player.sendMessage("Add a valid price");
@@ -180,21 +190,38 @@ public class Shop {
         });
     }
 
-    public void removeItem(int slot, Player player, Boolean isBuying) {
+    public void removeItem(int slot, Player player, int amount) {
         ItemStack item = inventory.getItem(slot);
-        if (isBuying) {
+        int totalAmount = item.getAmount();
+        if (!isShopOwner(player.getName())) {
             PlayerObj buyer = PlayerActions.getPlayer(player.getName());
             PlayerObj seller = PlayerActions.getPlayer(shopOwnerName);
-            int price = ItemHandler.getPrice(item);
+            int price = ItemHandler.getPrice(item) * amount;
             if (buyer.getCurrency() > price) {
                 buyer.setCurrency(buyer.getCurrency() - price);
                 seller.setCurrency(seller.getCurrency() + price);
+                if (totalAmount > 1) {
+                    ItemStack soldItem = item.clone();
+                    soldItem.setAmount(amount);
+                    item.setAmount(totalAmount - amount);
+                    player.getInventory().addItem(ItemHandler.removePrice(soldItem));
+                    inventory.setItem(slot, item);
+                    return;
+                }
             } else {
                 player.sendMessage("You don't have enough cash.");
                 return;
             }
+
         }
         inventory.clear(slot);
         player.getInventory().addItem(ItemHandler.removePrice(item));
+    }
+
+    public void updateInventory() {
+        ItemStack[] items = Arrays.copyOfRange(inventory.getContents(), 0, inventory.getSize() - 9);
+        inventory = createShopInv(shopOwnerName);
+        inventory.setContents(items);
+        fillBottom(inventory);
     }
 }
